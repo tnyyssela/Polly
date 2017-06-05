@@ -10,7 +10,7 @@ Installation:
 
     npm install opencv
   
-    npm install *in project dir*
+    npm install //in project dir
 
 Resources:
 ==========
