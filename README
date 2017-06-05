@@ -1,15 +1,15 @@
-Description:
+##Description:
 
 Parrot AR 2.0 Drone application for antonymous flight, facial tracking, and search capabilities.
 
 Written in Node.js using OOS libraries and AWS Rekognition Services API.
 
-Installation:
+##Installation:
 
 npm install opencv
-npm install //in project dir
+npm install *//in project dir*
 
-Resources:
+##Resources:
 
 http://www.instructables.com/id/Autonomous-AR-Parrot-Drone-20-Flying/
 https://github.com/felixge/node-ar-drone
