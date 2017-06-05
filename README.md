@@ -8,8 +8,9 @@ Description:
 Installation:
 ==========
 
-  `npm install opencv`
-  `npm install` *in project dir*
+    npm install opencv
+  
+    npm install *in project dir*
 
 Resources:
 ==========
