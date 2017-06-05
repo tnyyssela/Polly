@@ -1,0 +1,27 @@
+{
+  "name": "polly",
+  "version": "1.0.0",
+  "description": "Facial Recognition with Parrot 2.0 AR Drone",
+  "main": "polly.js",
+  "dependencies": {
+    "ar-drone": "^0.3.3",
+    "express": "^4.13.3",
+    "jsfeat": "^0.0.8",
+    "pica": "^1.0.7",
+    "pngjs": "^0.4.0"
+  },
+  "engine": "node ^4.1.0",
+  "scripts": {
+    "test": "node polly.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:tnyyssela/Polly.git"
+  },
+  "author": "tristan, john, josh",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tnyyssela/Polly/issues"
+  },
+  "homepage": "https://github.com/tnyyssela/Polly#readme"
+}
