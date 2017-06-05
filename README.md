@@ -3,7 +3,7 @@ Description:
 
   Parrot AR 2.0 Drone application for antonymous flight, facial tracking, and search capabilities.
 
-  Written in Node.js using OOS libraries and AWS Rekognition Services API.
+  Written in Node.js using OSS libraries and AWS Rekognition Services API.
 
 Installation:
 ==========
