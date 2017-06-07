@@ -1,21 +1,22 @@
 var Copterface = require('./lib/copterface');
 var arDrone = require('ar-drone');
-var client = arDrone.createClient();
-var pngStream = client.getPngStream();
+var client = arDrone.createClient(); 
+var pngStream = client.getPngStream(); //<--- This is broken
 
 client.takeoff();
 
-var copterface = Copterface(pngStream,function(info){
+var copterface = Copterface(pngStream,function(info){ //<--- Therefore this is broken
 	console.log(info);
 });
 
 client
-  .after(2000, function() {
-    this.up(1);
+  .after(10000, function() {
+    console.log("now tracking face");
+    copterface.start(); //<--- Therefore this is broken
   })
-  .after(2000, function() {
-    copterface.start();
-  })
-  .after(50000, function() {
+  .after(100000, function() {
+    console.log("landing");
     this.land();
   });
+
+  //Everything else is working fine
