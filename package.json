@@ -6,7 +6,9 @@
   "dependencies": {
     "ar-drone": "^0.3.3",
     "express": "^4.13.3",
+    "ffmpeg": "^0.0.4",
     "jsfeat": "^0.0.8",
+    "opencv": "^6.0.0",
     "pica": "^1.0.7",
     "pngjs": "^0.4.0"
   },
