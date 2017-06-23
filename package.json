@@ -5,9 +5,11 @@
   "main": "polly.js",
   "dependencies": {
     "ar-drone": "^0.3.3",
+    "aws-sdk": ">= 2.0.9",
     "express": "^4.13.3",
     "ffmpeg": "^0.0.4",
     "jsfeat": "^0.0.8",
+    "node-uuid": "^1.4.8",
     "opencv": "^6.0.0",
     "pica": "^1.0.7",
     "pngjs": "^0.4.0"
