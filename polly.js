@@ -3,16 +3,6 @@ var arDrone = require('ar-drone');
 var http    = require('http');
 var fs      = require('fs');
 var cv = require('opencv');
-
-var AWS = require('aws-sdk');
-var uuid = require('node-uuid');
-var s3 = new AWS.S3();
-// Bucket names must be unique across all S3 users
-
-var myBucket = 'my-bucket-'+uuid.v4();
-
-var myKey = 'testing.txt';
-
 //"1280:720", "960:540" <- error using 960, default is 640
 var options = { imageSize:"1280:720", //sets resolution of camera image
                 frameRate:5 //sets framerate to get more shots
