@@ -36,7 +36,7 @@ var rekognition = new AWS.Rekognition();
  })};
  */
 var params ={};
- fs.readFile("./content/images/test.png",function(err,data){
+ fs.readFile("./content/images/target.jpg",function(err,data){
   
    if(err) console.log(err,err.stack);
    else {
@@ -47,9 +47,12 @@ var params ={};
  });
 
  var readNextFile = function (buffer){
-    fs.readFile("./content/images/test.1.png", function(err,data){
+    fs.readFile("./content/images/group.jpg", function(err,data){
+      if(err) console.log(err,err.stack);
+      else {
       params.TargetImage = {Bytes:data};
       compare(params);
+      }
     });
  }
 
