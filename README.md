@@ -5,10 +5,16 @@ Description:
 
   Written in Node.js using OSS libraries and AWS Rekognition Services API.
 
+Dependencies:
+==========
+    (Install Homebrew if not already installed: https://brew.sh/)
+    brew update
+    brew tap homebrew/science
+    brew install opencv
+    brew install ffmpeg
+
 Installation:
 ==========
-
-    npm install opencv
   
     npm install
 

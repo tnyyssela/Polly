@@ -1,4 +1,3 @@
-
 var arDrone = require('ar-drone');
 var http    = require('http');
 var fs      = require('fs');
@@ -61,27 +60,105 @@ var savePictureDirect = function() {
     }, 1000);
 };
 
-var detectFaces = function(image) {
-  var resultImage = image;
-  console.log("detectFaces");
-  cv.readImage(image, function(err, im){
-    console.log("detectFaces - reading image");
-    im.detectObject(cv.FACE_CASCADE, {}, function(err, faces){
-      for (var i=0;i<faces.length; i++){
-        var x = faces[i]
-        im.ellipse(x.x + x.width/2, x.y + x.height/2, x.width/2, x.height/2);
-      }
+//Code below for tracking faces\
+//Currently tracking "biggest face"
+//TODO: Track AWS Recognized Face
+var processingImage = false;
+var lastPng;
+var flying = false;
+var startTime = new Date().getTime();
+var log = function(s){
+var time = ( ( new Date().getTime() - startTime ) / 1000 ).toFixed(2);
 
-      if(faces.length > 0) {
-        console.log("detectFaces found a face");
-        resultImage = im;
-        im.save('./face_' + Date.now() +'.jpg');
-      }
-    });
+  console.log(time+" \t"+s);
+}
+
+pngStream
+  .on('error', console.log)
+  .on('data', function(pngBuffer) {
+    //console.log("got image");
+    lastPng = pngBuffer;
   });
+     
+  var detectFaces = function(){ 
+      if( ! flying ) return;
+      if( ( ! processingImage ) && lastPng )
+      {
+        processingImage = true;
+        cv.readImage( lastPng, function(err, im) {
+          var opts = {};
+          im.detectObject(cv.FACE_CASCADE, opts, function(err, faces) {
 
-  return resultImage;
-};
+            var face;
+            var biggestFace; //this we can replace with our 'aws recognized' face
+
+            for(var k = 0; k < faces.length; k++) {
+              face = faces[k];
+
+              if( !biggestFace || biggestFace.width < face.width ) biggestFace = face;
+
+              //im.rectangle([face.x, face.y], [face.x + face.width, face.y + face.height], [0, 255, 0], 2);
+            }
+
+            if( biggestFace ){
+              face = biggestFace;
+              console.log( face.x, face.y, face.width, face.height, im.width(), im.height() );
+
+              face.centerX = face.x + face.width * 0.5;
+              face.centerY = face.y + face.height * 0.5;
+
+              var centerX = im.width() * 0.5;
+              var centerY = im.height() * 0.5;
+
+              var heightAmount = -( face.centerY - centerY ) / centerY;
+              var turnAmount = -( face.centerX - centerX ) / centerX;
+
+              turnAmount = Math.min( 1, turnAmount );
+              turnAmount = Math.max( -1, turnAmount );
+
+              log( turnAmount + " " + heightAmount );
+
+              heightAmount = Math.min( 1, heightAmount );
+              heightAmount = Math.max( -1, heightAmount );
+              //heightAmount = 0;
+
+              if( Math.abs( turnAmount ) > Math.abs( heightAmount ) ){
+                log( "turning "+turnAmount );
+                if( turnAmount < 0 ) client.clockwise( Math.abs( turnAmount ) );
+                else client.counterClockwise( turnAmount );
+                setTimeout(function(){
+                    log("stopping turn");
+                    client.clockwise(0);
+                    client.stop();
+                },100);
+              }
+              else {
+                log( "going vertical "+heightAmount );
+                if(  heightAmount < 0 ) client.down( heightAmount );
+                else client.up( heightAmount );
+                setTimeout(function(){
+                  log("stopping altitude change");
+                  
+                  client.up(0);
+                  client.stop();
+
+                },50);
+
+              }
+
+            }
+
+          processingImage = false;
+          //im.save('/tmp/salida.png');
+
+        }, opts.scale, opts.neighbors
+          , opts.min && opts.min[0], opts.min && opts.min[1]);
+        
+      });
+    };
+  };
+
+var faceInterval = setInterval( detectFaces, 100);
 
 //Start local server to serve up png stream to browser
 server.listen(8080, function() {
@@ -101,34 +178,41 @@ var flyme = function() {
 client.takeoff();
 
 client
-.after(4000, function(){
-  console.log('up');
-    savePictureDirect();
-  this.up(1);
+.after(4, function(){
+  //console.log('up');
+    //savePictureDirect();
+  //this.up(1);
+})
+.after(1000,function(){ 
+  log("stopping");
+  this.stop(); 
+  flying = true;
 })
   .after(4000, function(){
-    console.log("clockwise");
+    console.log("saving picture");
     savePictureDirect();
-    this.clockwise(1);
+    // this.clockwise(1);
   })
-  .after(1000, function(){
-    console.log("clockwise");
+  .after(10000, function(){
+    console.log("saving picture");
     savePictureDirect();
-    this.clockwise(1);
+    // this.clockwise(1);
   })
-  .after(1000, function(){
-    console.log("clockwise");
-    savePictureDirect();
-    this.clockwise(1);
+  .after(10000, function(){
+    console.log("saving picture");
+    savePictureDirect();   
+    // this.clockwise(1);
   })
-  .after(1000, function(){
-    console.log("clockwise");
+  .after(10000, function(){
+    console.log("saving picture");
     savePictureDirect();
-    this.clockwise(1);
+    // this.clockwise(1);
   })
-  .after(1000, function(){
-    console.log("land");
+  .after(10000, function(){
+    console.log("landing");
     savePictureDirect();
+    flying = false;
+    this.stop();
     this.land();
   });
 };
@@ -136,4 +220,4 @@ client
 
 
 //Call this to fly using above function
-//flyme();
+flyme();
