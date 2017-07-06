@@ -74,6 +74,27 @@ pngStream
     detectFaces();
   });
      
+  
+  var drawFaceBoxes = function(image, facesArray, targetFace) {
+      //draw boxes
+      for(var k = 0; k < facesArray.length; k++) {
+        face = facesArray[k];
+        
+        if( targetFace && targetFace.x == face.x ) {
+          //console.log("primary face");
+          //console.log( face.x, face.y, face.width, face.height, im.width(), im.height() );
+            
+          //green box around biggest face/aws recognized face
+          image.rectangle([face.x, face.y], [face.width, face.height], [0, 255, 0], 2);
+        } else {
+          //console.log("secondary face");
+          //console.log( face.x, face.y, face.width, face.height, im.width(), im.height() );
+          //red box around non-target faces
+          image.rectangle([face.x, face.y], [face.width, face.height], [0, 0, 255], 2);
+        }
+      }
+  }
+
   var detectFaces = function(callback){ 
       if( ! flying ) return;
       if( ( ! processingImage ) && lastPng )
@@ -90,8 +111,6 @@ pngStream
               face = faces[k];
 
               if( !biggestFace || biggestFace.width < face.width ) biggestFace = face;
-
-              //im.rectangle([face.x, face.y], [face.x + face.width, face.y + face.height], [0, 255, 0], 2);
             }
 
             if( biggestFace ){
@@ -141,6 +160,8 @@ pngStream
               }
 
             }
+
+          drawFaceBoxes(im, faces, biggestFace);
 
           processingImage = false;
           var img = im.toBuffer();
