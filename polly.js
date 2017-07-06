@@ -14,29 +14,22 @@ var png = null;
 
 console.log('Connecting png stream ...');
 var pngStream = client.getPngStream();
-
+var serverResponse;
 //Create server for browser view
 var server = http.createServer(function(req, res) {
 
-  if (!png) {
-    png = client.getPngStream();
-    png.on('error', function (err) {
-        console.error('png stream ERROR: ' + err);
-    });
-  }
-
   res.writeHead(200, { 'Content-Type': 'multipart/x-mixed-replace; boundary=--daboundary' });
+  serverResponse = res;
+  start();
 
-  png.on('data', sendPng);
-
-  function sendPng(buffer) {
-    var img = detectFaces(buffer);
-    console.log(img.length);
-    res.write('--daboundary\nContent-Type: image/png\nContent-length: ' + img.length + '\n\n');
-    
-    res.write(img); //Trying to get image with ellipse around face to show in browser. No luck yet
-  }
 });
+
+//Start local server to serve up png stream to browser
+server.listen(8080, function() {
+  console.log('Serving latest png on port 8080 ...');
+});
+
+var start = function(){
 
 // Utility. Saves unprocessed pictures directly from drone camera
 var savePictureDirect = function() {
@@ -65,7 +58,7 @@ var savePictureDirect = function() {
 //TODO: Track AWS Recognized Face
 var processingImage = false;
 var lastPng;
-var flying = false;
+var flying = true;
 var startTime = new Date().getTime();
 var log = function(s){
 var time = ( ( new Date().getTime() - startTime ) / 1000 ).toFixed(2);
@@ -78,9 +71,10 @@ pngStream
   .on('data', function(pngBuffer) {
     //console.log("got image");
     lastPng = pngBuffer;
+    detectFaces();
   });
      
-  var detectFaces = function(){ 
+  var detectFaces = function(callback){ 
       if( ! flying ) return;
       if( ( ! processingImage ) && lastPng )
       {
@@ -149,21 +143,18 @@ pngStream
             }
 
           processingImage = false;
-          //im.save('/tmp/salida.png');
-
+          var img = im.toBuffer();
+          serverResponse.write('--daboundary\nContent-Type: image/png\nContent-length: ' + img.length + '\n\n');
+          serverResponse.write(img); //Trying
+          //callback(im.toBuffer());
         }, opts.scale, opts.neighbors
           , opts.min && opts.min[0], opts.min && opts.min[1]);
-        
+
       });
     };
   };
 
 var faceInterval = setInterval( detectFaces, 100);
-
-//Start local server to serve up png stream to browser
-server.listen(8080, function() {
-  console.log('Serving latest png on port 8080 ...');
-});
 
 //Just sample usage of savePictureDirect
 client.after(1000, function(){
@@ -217,7 +208,7 @@ client
   });
 };
 
-
+};
 
 //Call this to fly using above function
-flyme();
+//flyme();
