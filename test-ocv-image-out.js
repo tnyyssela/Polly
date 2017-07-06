@@ -6,7 +6,7 @@ var fs      = require('fs');
 var camWidth = 320;
 var camHeight = 240;
 var camFps = 10;
-var camInterval = 1000 / camFps;
+var camInterval = 1000; // / camFps;
 
 // face detection properties
 var rectColor = [0, 255, 0];
@@ -29,9 +29,32 @@ var server = http.createServer(function(req, res) {
       im.detectObject('/Users/josh.ruoff/Documents/src/Hackathons/Polly/node_modules/opencv/data/haarcascade_frontalface_alt2.xml', {}, function(err, faces) {
         if (err) throw err;
 
-        for (var i = 0; i < faces.length; i++) {
-          face = faces[i];
-          im.rectangle([face.x, face.y], [face.width, face.height], rectColor, rectThickness);
+        var face;
+        var biggestFace; //this we can replace with our 'aws recognized' face
+
+        for(var k = 0; k < faces.length; k++) {
+          face = faces[k];
+          if( !biggestFace || biggestFace.width < face.width ) biggestFace = face;
+        }
+
+        //draw boxes
+        for(var k = 0; k < faces.length; k++) {
+          face = faces[k];
+          
+            console.log("biggest face");
+            console.log( biggestFace.x, biggestFace.y, biggestFace.width, biggestFace.height, im.width(), im.height() );
+          if( biggestFace && biggestFace.x == face.x ) {
+            console.log("primary face");
+            console.log( face.x, face.y, face.width, face.height, im.width(), im.height() );
+              
+            //green box around biggest face/aws recognized face
+            im.rectangle([face.x, face.y], [face.width, face.height], [0, 255, 0], 2);
+          } else {
+            console.log("secondary face");
+            console.log( face.x, face.y, face.width, face.height, im.width(), im.height() );
+              
+            im.rectangle([face.x, face.y], [face.width, face.height], [0, 0, 255], 2);
+          }
         }
     
         res.write('--daboundary\nContent-Type: image/png\nContent-length: ' + im.length + '\n\n');
