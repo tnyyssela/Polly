@@ -3,6 +3,9 @@ var http    = require('http');
 var fs      = require('fs');
 var cv = require('opencv');
 var rekog = require('./rekog-service');
+var knownFaces = [];
+var targetFace; //our 'aws recognized' face
+
 //"1280:720", "960:540" <- error using 960, default is 640
 var options = { imageSize:"1280:720", //sets resolution of camera image
                 frameRate:5 //sets framerate to get more shots
@@ -32,6 +35,18 @@ server.listen(8080, function() {
 });
 
 var start = function(){
+
+  console.log('STARTING ROBOT REVOLUTION!!!');
+  client.takeoff();
+
+  //After 1 min, land
+  client.after(60000, function() {
+    console.log('TERMINATING ROBOT REVOLUTION!!!');
+    this.stop();
+    this.land();
+  })
+
+  var sourceImg = fs.readFileSync('./faceImg.jpg');
 
 // Utility. Saves unprocessed pictures directly from drone camera
 var savePictureDirect = function() {
@@ -90,23 +105,20 @@ pngStream
      
   
   var drawFaceBoxes = function(image, facesArray, targetFace) {
+    if(facesArray) {
       //draw boxes
       for(var k = 0; k < facesArray.length; k++) {
         face = facesArray[k];
         
         if( targetFace && targetFace.x == face.x ) {
-          //console.log("primary face");
-          //console.log( face.x, face.y, face.width, face.height, im.width(), im.height() );
-            
           //green box around biggest face/aws recognized face
           image.rectangle([face.x, face.y], [face.width, face.height], [0, 255, 0], 2);
         } else {
-          //console.log("secondary face");
-          //console.log( face.x, face.y, face.width, face.height, im.width(), im.height() );
           //red box around non-target faces
           image.rectangle([face.x, face.y], [face.width, face.height], [0, 0, 255], 2);
         }
       }
+    }
   }
 
   var detectFaces = function(){ 
@@ -119,23 +131,39 @@ pngStream
           im.detectObject(cv.FACE_CASCADE, opts, function(err, faces) {
 
             var face;
-            var biggestFace; //this we can replace with our 'aws recognized' face
 
-            for (var k = 0; k < faces.length; k++) {
-              face = faces[k];
-              if (!biggestFace || biggestFace.width < face.width) biggestFace = face;
+            //If number of faces grows check aws
+            if (knownFaces < faces ) {
+              rekog.compareFaces({Bytes:sourceImg}, {Bytes:lastPng}, function(data) {
+                var rekFace = rekog.translateAWSRatioToPixels(data, {width:1280, height: 720});
+                if(rekFace) { //null if no face found from aws
+                  for(var k = 0; k < faces.length; k++) {
+                    face = faces[k];
+                    //try to match aws face box to opencv face box
+                    if( compareFaceBoxes(face, rekFace, face.width/2) ) {
+                      console.log("FACE FOUND!!");
+                      targetFace = face;
+                    }
+                  }
+                }
+              });           
             }
-            if (biggestFace) {
-              trackCurrentFace(im, face, biggestFace);
-            }
-            
+          
+          //refresh list of known faces
+          knownFaces = faces;
 
-          drawFaceBoxes(im, faces, biggestFace);
+          //draw boxes for output to browser
+          drawFaceBoxes(im, faces, targetFace);
 
           processingImage = false;
           var img = im.toBuffer();
           serverResponse.write('--daboundary\nContent-Type: image/png\nContent-length: ' + img.length + '\n\n');
           serverResponse.write(img); 
+
+          //if we found a face from aws then track it
+            if (targetFace) {
+              trackCurrentFace(im, face, targetFace);
+            }
 
         }, opts.scale, opts.neighbors
           , opts.min && opts.min[0], opts.min && opts.min[1]);
@@ -144,8 +172,8 @@ pngStream
     };
   };
 
-var trackCurrentFace = function(im,face,biggestFace){
-  face = biggestFace;
+var trackCurrentFace = function(im,face,targetFace){
+  face = targetFace;
   console.log(face.x, face.y, face.width, face.height, im.width(), im.height());
 
   face.centerX = face.x + face.width * 0.5;
@@ -166,19 +194,20 @@ var trackCurrentFace = function(im,face,biggestFace){
   heightAmount = Math.max(-1, heightAmount);
   //heightAmount = 0;
 
-  if (Math.abs(turnAmount) > Math.abs(heightAmount)) {
-    log("turning " + turnAmount);
-    if (turnAmount < 0) client.clockwise(Math.abs(turnAmount));
+    if (turnAmount < 0) {
+      client.clockwise(Math.abs(turnAmount));
+      log("turning " + turnAmount);
+    }
     else client.counterClockwise(turnAmount);
     setTimeout(function () {
       log("stopping turn");
       client.clockwise(0);
       client.stop();
     }, 100);
-  }
-  else {
-    log("going vertical " + heightAmount);
-    if (heightAmount < 0) client.down(heightAmount);
+    if (heightAmount < 0) {
+      client.down(heightAmount);
+      log("going vertical " + heightAmount);
+    }
     else client.up(heightAmount);
     setTimeout(function () {
       log("stopping altitude change");
@@ -187,8 +216,6 @@ var trackCurrentFace = function(im,face,biggestFace){
       client.stop();
 
     }, 50);
-
-  }
 };
 
 
@@ -205,59 +232,4 @@ var trackCurrentFace = function(im,face,biggestFace){
 
 var faceInterval = setInterval( detectFaces, 100);
 
-//Just sample usage of savePictureDirect
-client.after(1000, function(){
-    console.log("CHEESE!!");
-    savePictureDirect();  
-});
-
-// ************************
-//  FLIGHT COMMANDS
-// ************************
-var flyme = function() {
-client.takeoff();
-
-client
-.after(4, function(){
-  //console.log('up');
-    //savePictureDirect();
-  //this.up(1);
-})
-.after(1000,function(){ 
-  log("stopping");
-  this.stop(); 
-  flying = true;
-})
-  .after(4000, function(){
-    console.log("saving picture");
-    savePictureDirect();
-    // this.clockwise(1);
-  })
-  .after(10000, function(){
-    console.log("saving picture");
-    savePictureDirect();
-    // this.clockwise(1);
-  })
-  .after(10000, function(){
-    console.log("saving picture");
-    savePictureDirect();   
-    // this.clockwise(1);
-  })
-  .after(10000, function(){
-    console.log("saving picture");
-    savePictureDirect();
-    // this.clockwise(1);
-  })
-  .after(10000, function(){
-    console.log("landing");
-    savePictureDirect();
-    flying = false;
-    this.stop();
-    this.land();
-  });
 };
-
-};
-
-//Call this to fly using above function
-//flyme();
