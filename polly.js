@@ -191,6 +191,18 @@ var trackCurrentFace = function(im,face,biggestFace){
   }
 };
 
+
+  var compareFaceBoxes = function(oCVBox, targetBox, threshold) {
+      var centerCVX = oCVBox.x + oCVBox.width * 0.5;
+      var centerCVY = oCVBox.y + oCVBox.height * 0.5;
+      var centerTBX = targetBox.x + targetBox.width * 0.5;
+      var centerTBY = targetBox.y + targetBox.height * 0.5;
+      var x_pos_OK = centerTBX <= centerCVX + threshold && centerTBX >= centerCVX - threshold;
+      var y_pos_OK = centerTBY <= centerCVY + threshold && centerTBY >= centerCVY - threshold;
+
+      return x_pos_OK && y_pos_OK;
+  }
+
 var faceInterval = setInterval( detectFaces, 100);
 
 //Just sample usage of savePictureDirect
