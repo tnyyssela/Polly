@@ -2,6 +2,7 @@ var arDrone = require('ar-drone');
 var http    = require('http');
 var fs      = require('fs');
 var cv = require('opencv');
+var rekog = require('./rekog-service');
 //"1280:720", "960:540" <- error using 960, default is 640
 var options = { imageSize:"1280:720", //sets resolution of camera image
                 frameRate:5 //sets framerate to get more shots
@@ -11,6 +12,7 @@ var client = arDrone.createClient();
 console.log("Hello, Polly! Pretty bird...");
 
 var png = null;
+var sourceImg = null;
 
 console.log('Connecting png stream ...');
 var pngStream = client.getPngStream();
@@ -66,12 +68,24 @@ var time = ( ( new Date().getTime() - startTime ) / 1000 ).toFixed(2);
   console.log(time+" \t"+s);
 }
 
+//set sourceImage
+fs.readFile('./content/images/test.png',function(err,data){
+      if(err) console.log(err.message,err.stack);
+      if(data){
+        console.log(sourceImg);
+        sourceImg = data;
+      }
+});
+
 pngStream
   .on('error', console.log)
   .on('data', function(pngBuffer) {
     //console.log("got image");
     lastPng = pngBuffer;
-    detectFaces();
+    //if our source Image is defined
+    if(sourceImg){
+      detectFaces();
+    }
   });
      
   
@@ -95,7 +109,7 @@ pngStream
       }
   }
 
-  var detectFaces = function(callback){ 
+  var detectFaces = function(){ 
       if( ! flying ) return;
       if( ( ! processingImage ) && lastPng )
       {
@@ -107,73 +121,75 @@ pngStream
             var face;
             var biggestFace; //this we can replace with our 'aws recognized' face
 
-            for(var k = 0; k < faces.length; k++) {
+            for (var k = 0; k < faces.length; k++) {
               face = faces[k];
-
-              if( !biggestFace || biggestFace.width < face.width ) biggestFace = face;
+              if (!biggestFace || biggestFace.width < face.width) biggestFace = face;
             }
-
-            if( biggestFace ){
-              face = biggestFace;
-              console.log( face.x, face.y, face.width, face.height, im.width(), im.height() );
-
-              face.centerX = face.x + face.width * 0.5;
-              face.centerY = face.y + face.height * 0.5;
-
-              var centerX = im.width() * 0.5;
-              var centerY = im.height() * 0.5;
-
-              var heightAmount = -( face.centerY - centerY ) / centerY;
-              var turnAmount = -( face.centerX - centerX ) / centerX;
-
-              turnAmount = Math.min( 1, turnAmount );
-              turnAmount = Math.max( -1, turnAmount );
-
-              log( turnAmount + " " + heightAmount );
-
-              heightAmount = Math.min( 1, heightAmount );
-              heightAmount = Math.max( -1, heightAmount );
-              //heightAmount = 0;
-
-              if( Math.abs( turnAmount ) > Math.abs( heightAmount ) ){
-                log( "turning "+turnAmount );
-                if( turnAmount < 0 ) client.clockwise( Math.abs( turnAmount ) );
-                else client.counterClockwise( turnAmount );
-                setTimeout(function(){
-                    log("stopping turn");
-                    client.clockwise(0);
-                    client.stop();
-                },100);
-              }
-              else {
-                log( "going vertical "+heightAmount );
-                if(  heightAmount < 0 ) client.down( heightAmount );
-                else client.up( heightAmount );
-                setTimeout(function(){
-                  log("stopping altitude change");
-                  
-                  client.up(0);
-                  client.stop();
-
-                },50);
-
-              }
-
+            if (biggestFace) {
+              trackCurrentFace(im, face, biggestFace);
             }
+            
 
           drawFaceBoxes(im, faces, biggestFace);
 
           processingImage = false;
           var img = im.toBuffer();
           serverResponse.write('--daboundary\nContent-Type: image/png\nContent-length: ' + img.length + '\n\n');
-          serverResponse.write(img); //Trying
-          //callback(im.toBuffer());
+          serverResponse.write(img); 
+
         }, opts.scale, opts.neighbors
           , opts.min && opts.min[0], opts.min && opts.min[1]);
 
       });
     };
   };
+
+var trackCurrentFace = function(im,face,biggestFace){
+  face = biggestFace;
+  console.log(face.x, face.y, face.width, face.height, im.width(), im.height());
+
+  face.centerX = face.x + face.width * 0.5;
+  face.centerY = face.y + face.height * 0.5;
+
+  var centerX = im.width() * 0.5;
+  var centerY = im.height() * 0.5;
+
+  var heightAmount = -(face.centerY - centerY) / centerY;
+  var turnAmount = -(face.centerX - centerX) / centerX;
+
+  turnAmount = Math.min(1, turnAmount);
+  turnAmount = Math.max(-1, turnAmount);
+
+  log(turnAmount + " " + heightAmount);
+
+  heightAmount = Math.min(1, heightAmount);
+  heightAmount = Math.max(-1, heightAmount);
+  //heightAmount = 0;
+
+  if (Math.abs(turnAmount) > Math.abs(heightAmount)) {
+    log("turning " + turnAmount);
+    if (turnAmount < 0) client.clockwise(Math.abs(turnAmount));
+    else client.counterClockwise(turnAmount);
+    setTimeout(function () {
+      log("stopping turn");
+      client.clockwise(0);
+      client.stop();
+    }, 100);
+  }
+  else {
+    log("going vertical " + heightAmount);
+    if (heightAmount < 0) client.down(heightAmount);
+    else client.up(heightAmount);
+    setTimeout(function () {
+      log("stopping altitude change");
+
+      client.up(0);
+      client.stop();
+
+    }, 50);
+
+  }
+};
 
 var faceInterval = setInterval( detectFaces, 100);
 
