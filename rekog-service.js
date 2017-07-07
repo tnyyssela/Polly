@@ -43,29 +43,12 @@ var detectLabels = function(img, callback, optLabelNameToFind) {
     
 };
 
-//can't get this to work, not sure if it's because of image is being from fs opposed to drone cam, or what.
-//imagesize returns false, which means it doesn't recognize the image fomrat!
-// var translateAWSRatioToPixels = function(targetImg, face, callback) {
-    
-//             //var base64Image = targetImg.toString('base64');
-//             console.log("getting size");
-//             imagesize(targetImg, function(err, result) {
-//                     if (!err) {
-//                         console.log(result); // {type, width, height}
-//                         console.log("Image size: w=" + result.width + " and h=" + result.height);
-                        
-//             //console.log(imageDim);
-//             //console.log("Image size: w=" + imageDim.width + " and h=" +imageDim.height);
-//            // console.log(imageDim.width);
-
-//                         callback( {left: faceMatch.BoundingBox.Left * imageDim.width,
-//                                 top: faceMatch.BoundingBox.Top * imageDim.height,
-//                                 width: faceMatch.BoundingBox.Width * imageDim.width,
-//                                 height: faceMatch.BoundingBox.Height * imageDim.height});
-//                     }
-//                     });
-        
-// }
+var translateAWSRatioToPixels = function(awsFaceBox, imageDimensions) {
+    return {x: awsFaceBox.Left * imageDimensions.width,
+            y: awsFaceBox.Top * imageDimensions.height,
+            width: awsFaceBox.Width * imageDimensions.width,
+            height: awsFaceBox.Height * imageDimensions.height};
+};
 
 //source image - image of a face to find
 //target image - image to search within
@@ -121,3 +104,4 @@ var detectFaces = function(img, callback) {
 module.exports.detectLabels = detectLabels;
 module.exports.compareFaces = compareFaces;
 module.exports.detectFaces = detectFaces;
+module.exports.translateAWSRatioToPixels = translateAWSRatioToPixels;

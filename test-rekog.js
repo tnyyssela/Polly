@@ -1,5 +1,6 @@
 var rekog = require('./rekog-service.js');
 var fs = require('fs');
+var cv = require('opencv');
 
 var responseActionForDetectLabels = function(responseData) {
 
@@ -61,11 +62,11 @@ var test_compareFaces = function() {
         rekog.compareFaces(params.SourceImage, params.TargetImage, function(data) {
                 console.log("Face bounding box on target image: ");
                 console.log(data);
+                console.log(rekog.translateAWSRatioToPixels(data, {width:1024, height: 576}));
         });
     };
 
 };
-
 
 
 var test_detectFaces = function() {
@@ -83,7 +84,72 @@ var test_detectFaces = function() {
 };
 
 
+var test_compareFacesToOpenCV = function() {
+
+    var params ={};
+    fs.readFile("./content/images/target.jpg",function(err,data){
+    
+    if(err) console.log(err,err.stack);
+    else {
+        params.SourceImage = data;
+        readNextFile(data);
+    }
+    
+    });
+
+    var readNextFile = function (buffer){
+        fs.readFile("./content/images/group.jpg", function(err,data){
+        if(err) console.log(err,err.stack);
+        else {
+            params.TargetImage = data;
+            compare(params);
+        }
+        });
+    }
+
+    var compare = function(params) {
+        rekog.compareFaces({Bytes:params.SourceImage}, {Bytes:params.TargetImage}, function(data) {
+                var rekFace = rekog.translateAWSRatioToPixels(data, {width:1024, height: 576});
+                detectFaces(params.TargetImage, rekFace);
+        });
+    };
+
+  var detectFaces = function(image, awsfaceBox){ 
+        cv.readImage( image, function(err, im) {
+          var opts = {};
+          im.detectObject(cv.FACE_CASCADE, opts, function(err, faces) {
+            var face;
+            var biggestFace; //this we can replace with our 'aws recognized' face
+
+            for(var k = 0; k < faces.length; k++) {
+              face = faces[k];
+
+              if( compareFaceBoxes(face, awsfaceBox, face.width/2) ) {
+                console.log("FACE FOUND!!");
+                biggestFace = face;
+              }
+            }
+
+        }, opts.scale, opts.neighbors
+          , opts.min && opts.min[0], opts.min && opts.min[1]);
+
+      });
+    };
+  };
+
+  var compareFaceBoxes = function(oCVBox, targetBox, threshold) {
+      var centerCVX = oCVBox.x + oCVBox.width * 0.5;
+      var centerCVY = oCVBox.y + oCVBox.height * 0.5;
+      var centerTBX = targetBox.x + targetBox.width * 0.5;
+      var centerTBY = targetBox.y + targetBox.height * 0.5;
+      var x_pos_OK = centerTBX <= centerCVX + threshold && centerTBX >= centerCVX - threshold;
+      var y_pos_OK = centerTBY <= centerCVY + threshold && centerTBY >= centerCVY - threshold;
+
+      return x_pos_OK && y_pos_OK;
+  }
+
 //Run tests
 //test_detectLabels();
 //test_compareFaces();
 //test_detectFaces();
+test_compareFacesToOpenCV();
