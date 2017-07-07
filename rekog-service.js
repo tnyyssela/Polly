@@ -44,10 +44,12 @@ var detectLabels = function(img, callback, optLabelNameToFind) {
 };
 
 var translateAWSRatioToPixels = function(awsFaceBox, imageDimensions) {
+    if (awsFaceBox){
     return {x: awsFaceBox.Left * imageDimensions.width,
             y: awsFaceBox.Top * imageDimensions.height,
             width: awsFaceBox.Width * imageDimensions.width,
             height: awsFaceBox.Height * imageDimensions.height};
+    }
 };
 
 //source image - image of a face to find

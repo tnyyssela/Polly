@@ -25,8 +25,14 @@ var server = http.createServer(function(req, res) {
 
   res.writeHead(200, { 'Content-Type': 'multipart/x-mixed-replace; boundary=--daboundary' });
   serverResponse = res;
-  start();
-
+  
+  fs.readFile("./faceImg.jpg", function(err,data){
+    if(err) console.log(err,err.stack);
+    else {
+        sourceImg = data;
+        start();
+    }
+  });
 });
 
 //Start local server to serve up png stream to browser
@@ -36,6 +42,7 @@ server.listen(8080, function() {
 
 var start = function(){
 
+try {
   console.log('STARTING ROBOT REVOLUTION!!!');
   client.takeoff();
 
@@ -46,7 +53,6 @@ var start = function(){
     this.land();
   })
 
-  var sourceImg = fs.readFileSync('./faceImg.jpg');
 
 // Utility. Saves unprocessed pictures directly from drone camera
 var savePictureDirect = function() {
@@ -83,24 +89,12 @@ var time = ( ( new Date().getTime() - startTime ) / 1000 ).toFixed(2);
   console.log(time+" \t"+s);
 }
 
-//set sourceImage
-fs.readFile('./content/images/test.png',function(err,data){
-      if(err) console.log(err.message,err.stack);
-      if(data){
-        console.log(sourceImg);
-        sourceImg = data;
-      }
-});
-
 pngStream
   .on('error', console.log)
   .on('data', function(pngBuffer) {
     //console.log("got image");
     lastPng = pngBuffer;
     //if our source Image is defined
-    if(sourceImg){
-      detectFaces();
-    }
   });
      
   
@@ -134,6 +128,7 @@ pngStream
 
             //If number of faces grows check aws
             if (knownFaces < faces ) {
+              console.log({Bytes:sourceImg}, {Bytes:lastPng});
               rekog.compareFaces({Bytes:sourceImg}, {Bytes:lastPng}, function(data) {
                 var rekFace = rekog.translateAWSRatioToPixels(data, {width:1280, height: 720});
                 if(rekFace) { //null if no face found from aws
@@ -231,5 +226,8 @@ var trackCurrentFace = function(im,face,targetFace){
   }
 
 var faceInterval = setInterval( detectFaces, 100);
-
+} catch(err) {
+  console.log(err);
+  client.land();
+}
 };
