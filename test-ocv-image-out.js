@@ -3,10 +3,13 @@ var http    = require('http');
 var fs      = require('fs');
 
 // camera properties
-var camWidth = 320;
-var camHeight = 240;
+//"1280:720", "960:720"
+//960×720  = 4:3
+//1080×720 = 3:2
+var camWidth = 960;
+var camHeight = 720;
 var camFps = 10;
-var camInterval = 1000; // / camFps;
+var camInterval = 1000/camFps;
 
 // face detection properties
 var rectColor = [0, 255, 0];
@@ -26,32 +29,31 @@ var server = http.createServer(function(req, res) {
     camera.read(function(err, im) {
       if (err) throw err;
 
-      im.detectObject('/Users/josh.ruoff/Documents/src/Hackathons/Polly/node_modules/opencv/data/haarcascade_frontalface_alt2.xml', {}, function(err, faces) {
+      im.detectObject('./node_modules/opencv/data/haarcascade_frontalface_alt.xml', {}, function(err, faces) {
         if (err) throw err;
 
-        var face;
         var biggestFace; //this we can replace with our 'aws recognized' face
 
         for(var k = 0; k < faces.length; k++) {
-          face = faces[k];
+          var face = faces[k];
           if( !biggestFace || biggestFace.width < face.width ) biggestFace = face;
         }
 
         //draw boxes
         for(var k = 0; k < faces.length; k++) {
-          face = faces[k];
+          var face = faces[k];
           
-            console.log("biggest face");
-            console.log( biggestFace.x, biggestFace.y, biggestFace.width, biggestFace.height, im.width(), im.height() );
+            // console.log("biggest face");
+            // console.log( biggestFace.x, biggestFace.y, biggestFace.width, biggestFace.height, im.width(), im.height() );
           if( biggestFace && biggestFace.x == face.x ) {
-            console.log("primary face");
-            console.log( face.x, face.y, face.width, face.height, im.width(), im.height() );
+            // console.log("primary face");
+            // console.log( face.x, face.y, face.width, face.height, im.width(), im.height() );
               
             //green box around biggest face/aws recognized face
             im.rectangle([face.x, face.y], [face.width, face.height], [0, 255, 0], 2);
           } else {
-            console.log("secondary face");
-            console.log( face.x, face.y, face.width, face.height, im.width(), im.height() );
+            // console.log("secondary face");
+            // console.log( face.x, face.y, face.width, face.height, im.width(), im.height() );
               
             im.rectangle([face.x, face.y], [face.width, face.height], [0, 0, 255], 2);
           }

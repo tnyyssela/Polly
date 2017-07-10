@@ -38,11 +38,11 @@ var test_detectLabels = function() {
 var test_compareFaces = function() {
 
     var params ={};
-    fs.readFile("./content/images/target.jpg",function(err,data){
+    fs.readFile("./content/images/target4.jpg",function(err,data){
     
     if(err) console.log(err,err.stack);
     else {
-        params.SourceImage = {Bytes:data};
+        params.SourceImage = data; //{Bytes:data};
         readNextFile(data);
     }
     
@@ -52,14 +52,14 @@ var test_compareFaces = function() {
         fs.readFile("./content/images/group.jpg", function(err,data){
         if(err) console.log(err,err.stack);
         else {
-            params.TargetImage = {Bytes:data};
+            params.TargetImage = data; //{Bytes:data};
             compare(params);
         }
         });
     }
 
     var compare = function(params) {
-        rekog.compareFaces(params.SourceImage, params.TargetImage, function(data) {
+        rekog.compareFaces(params.SourceImage, params.TargetImage, function(err,data) {
                 console.log("Face bounding box on target image: ");
                 console.log(data);
                 console.log(rekog.translateAWSRatioToPixels(data, {width:1024, height: 576}));
@@ -87,7 +87,7 @@ var test_detectFaces = function() {
 var test_compareFacesToOpenCV = function() {
 
     var params ={};
-    fs.readFile("./content/images/target.jpg",function(err,data){
+    fs.readFile("./content/images/target4.jpg",function(err,data){
     
     if(err) console.log(err,err.stack);
     else {
@@ -108,7 +108,7 @@ var test_compareFacesToOpenCV = function() {
     }
 
     var compare = function(params) {
-        rekog.compareFaces({Bytes:params.SourceImage}, {Bytes:params.TargetImage}, function(data) {
+        rekog.compareFaces(params.SourceImage, params.TargetImage, function(data) {
                 var rekFace = rekog.translateAWSRatioToPixels(data, {width:1024, height: 576});
                 detectFaces(params.TargetImage, rekFace);
         });
@@ -150,6 +150,6 @@ var test_compareFacesToOpenCV = function() {
 
 //Run tests
 //test_detectLabels();
-//test_compareFaces();
+test_compareFaces();
 //test_detectFaces();
-test_compareFacesToOpenCV();
+//test_compareFacesToOpenCV();

@@ -24,19 +24,19 @@ var detectLabels = function(img, callback, optLabelNameToFind) {
     rekognition.detectLabels(params, function(err, data) {
          if (err) {
             console.log(err, err.stack); // an error occurred
-            callback(null);
+            callback(err,null);
         }
         else {
             // successful response return json
             if(data) {
                 if(optLabelNameToFind) {
                     var foundItem = data.Labels.find(findLabelName, optLabelNameToFind);
-                    callback(foundItem);
+                    callback(err,foundItem);
                 } else {
-                    callback(data)
+                    callback(err,data)
                 }
             } else {
-                    callback(data)
+                    callback(err,data)
             }
         }
     });
@@ -58,27 +58,30 @@ var translateAWSRatioToPixels = function(awsFaceBox, imageDimensions) {
 var compareFaces = function(sourceImg, targetImg, callback) {
        
     var params = {
-        SourceImage : sourceImg,
-        TargetImage : targetImg,
+        SourceImage : { Bytes: sourceImg },
+        TargetImage : { Bytes: targetImg },
         SimilarityThreshold : 90
      };
-
+console.log("calling aws");
     rekognition.compareFaces(params, function(err, data) {
+console.log("AWS returned");
         if (err) {
-            console.log(err, err.stack); // an error occurred
-            callback(null);
+            console.log(err); // an error occurred
+            callback(err, null);
         }
         else {
+console.log("AWS success:");
             // successful response
             var faceMatches = data.FaceMatches;
             if(faceMatches) {
+                console.log("Face Match count = ", faceMatches.length);
                 if(faceMatches.length > 0) {
-                    //sort descending by similarity score
-                    faceMatches.sort(function(a, b){return b.Similarity - a.Similarity});
+                    //sort descending by similarity score, aws might already do this
+                    //faceMatches.sort(function(a, b){return b.Similarity - a.Similarity});
                     var face = faceMatches[0].Face;
-                    callback(face.BoundingBox);
-                } else callback(null);
-            } else callback(null);
+                    callback(err, face.BoundingBox);
+                } else callback(err,null);
+            } else callback(err,null);
         }
     });
 };
@@ -94,11 +97,11 @@ var detectFaces = function(img, callback) {
     rekognition.detectFaces(params, function(err, data) {
         if (err) {
             console.log(err, err.stack); // an error occurred
-            callback(null);
+            callback(err,null);
         }
         else {
             // successful response
-            callback(data.FaceDetails);
+            callback(err,data.FaceDetails);
         }
     });
 };
