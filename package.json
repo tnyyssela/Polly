@@ -13,6 +13,7 @@
     "imageinfo": "^1.0.4",
     "imagesize": "^1.0.0",
     "jsfeat": "^0.0.8",
+    "jshint": "^2.9.5",
     "kafka-node": "^2.2.3",
     "node-uuid": "^1.4.8",
     "opencv": "^6.0.0",
