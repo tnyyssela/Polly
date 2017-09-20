@@ -6,23 +6,40 @@ var util = require('util');
 var cv = require('opencv');
 var kfkObj = [];
 
+/*
+*
+* README:
+* - consume img and loc data from kafka
+* - pass img to azure for CV img desc
+* - pass img to OpenCV for bounding box
+* - publish location, azure desc, bounding box to kafka via producer
+*
+* - TODO: Fix kafka consumer to interact with actual data stream
+* - TODO: Verify producer is delivering data as UWP/Hololens expects
+*/
+
 //*****************************************************/
 //Kafka Consumer
 //*****************************************************/
 
-//Subscribe and log from 'test' topic
+//Subscribe and log from 'test' topic 
+//TODO: GET THIS WORKING WITH REAL KAFKA STUFFS!
 kafka.consumer("my-consumer").join({
     "format": "binary",
     "auto.offset.reset": "smallest"
   }, function(err, consumer_instance) {
-    var stream = consumer_instance.subscribe('drone1_successfullAIResults'); //need to update to vid stream
+    var stream = consumer_instance.subscribe('drone1_successfullAIResults'); //TODO: need to update to vid stream
 
     stream.on('read', function(msgs) {
         for(var i = 0; i < msgs.length; i++)
             console.log("Got a message: " + msgs[i]);
 
             //Send to azure to describe img
-            // az_describe(msgs[i].value);
+            // az_describe(msgs[i].value); //TODO: update to whatever this msgs img data val actually is
+
+            //Add location to kfkObj
+            //kfkObj.push({"location": msgs[i].value.location}); //TODO: whatever this loc obj actually is
+
     });
 });
 
