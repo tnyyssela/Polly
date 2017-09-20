@@ -29,25 +29,26 @@ var kfkObj = [];
 
 //Subscribe and log from 'test' topic 
 //TODO: GET THIS WORKING WITH REAL KAFKA STUFFS!
-kafka.consumer("my-consumer").join({
-    "format": "binary",
-    "auto.offset.reset": "smallest"
-  }, function(err, consumer_instance) {
-    var stream = consumer_instance.subscribe('drone1_successfullAIResults'); //TODO: need to update to vid stream
+var kfkCon = function () {
+        kafka.consumer("my-consumer").join({
+        "format": "binary",
+        "auto.offset.reset": "smallest"
+        }, function(err, consumer_instance) {
+        var stream = consumer_instance.subscribe('drone1_successfullAIResults'); //TODO: need to update to vid stream
 
-    stream.on('read', function(msgs) {
-        for(var i = 0; i < msgs.length; i++)
-            console.log("Got a message: " + msgs[i]);
+        stream.on('data', function(msgs) {
+            for(var i = 0; i < msgs.length; i++)
+                console.log("Got a message: key=" + msgs[i].key + " value=" + msgs[i].value + " partition=" + msgs[i].partition);
+            
+                //Send to azure to describe img
+                // az_describe(msgs[i].value); //TODO: update to whatever this msgs img data val actually is
 
-            //Send to azure to describe img
-            // az_describe(msgs[i].value); //TODO: update to whatever this msgs img data val actually is
+                //Add location to kfkObj
+                //kfkObj.push({"location": msgs[i].value.location}); //TODO: whatever this loc obj actually is
 
-            //Add location to kfkObj
-            //kfkObj.push({"location": msgs[i].value.location}); //TODO: whatever this loc obj actually is
-
+        });
     });
-});
-
+};
 //*****************************************************/
 //Azure CV Analysis
 //*****************************************************/
@@ -75,7 +76,7 @@ var az_describe = function (img){
             console.log(body);
 
             //publish azure tags json to kafka
-            kfkObj.push({"az_desc": body});
+            kfkObj.push({'key': 'az_desc', 'value': body});
 
             //Send to OpenCV for bounding boxes
             cvDetect(img);
@@ -138,9 +139,9 @@ var cvDetect = function(img) {
         var buff = im.toBuffer();
 
         //Add image binary to kfkObj
-        kfkObj.push({"personImg" : buff});
-
-        console.log(kfkObj.length);
+        if(buff){
+            kfkObj.push({'key': 'ocv_bounding', 'value': buff});            
+        }
         
         //publish kfkObj to kafka
         kfkProd(kfkObj);
@@ -156,6 +157,7 @@ var cvDetect = function(img) {
 
 var kfkProd = function(kfkObj){ 
 
+    console.log(kfkObj);
     //Push to 'test' topic
     kafka.topic('drone1_successfullAIResults')
         .produce(kfkObj,
