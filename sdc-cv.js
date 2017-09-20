@@ -15,6 +15,7 @@ var kfkObj = [];
 * - publish location, azure desc, bounding box to kafka via producer
 *
 * RUN PROJ:
+* - update KafkaRest endpoint at top of file ^^^
 * - npm install
 * - npm run sdc
 *
