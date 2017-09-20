@@ -7,22 +7,22 @@
     "ar-drone": "^0.3.3",
     "avsc": "^5.0.5",
     "aws-sdk": ">= 2.0.9",
-    "cognitive-services": "^0.1.2",
     "express": "^4.13.3",
     "ffmpeg": "0.0.4",
     "imageinfo": "^1.0.4",
     "imagesize": "^1.0.0",
     "jsfeat": "^0.0.8",
     "jshint": "^2.9.5",
-    "kafka-node": "^2.2.3",
+    "kafka-rest": "0.0.5",
     "node-uuid": "^1.4.8",
     "opencv": "^6.0.0",
     "pica": "^1.0.7",
     "pngjs": "^0.4.0"
   },
-  "engine": "node ^4.1.0",
+  "engine": "node ^6.0.0",
   "scripts": {
-    "test": "node polly.js"
+    "test": "node polly.js",
+    "sdc": "node sdc-cv.js"
   },
   "repository": {
     "type": "git",
