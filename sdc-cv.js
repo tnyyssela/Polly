@@ -14,6 +14,10 @@ var kfkObj = [];
 * - pass img to OpenCV for bounding box
 * - publish location, azure desc, bounding box to kafka via producer
 *
+* RUN PROJ:
+* - npm install
+* - npm run sdc
+*
 * - TODO: Fix kafka consumer to interact with actual data stream
 * - TODO: Verify producer is delivering data as UWP/Hololens expects
 */
