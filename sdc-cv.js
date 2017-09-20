@@ -1,9 +1,10 @@
 var KafkaRest = require('kafka-rest');
-var kafka = new KafkaRest({ 'url': 'http://localhost:9092' });
+var kafka = new KafkaRest({ 'url': 'http://10.0.0.176:8082' });
 var fs = require('fs');
 var request = require('request');
 var util = require('util');
-
+var cv = require('opencv');
+var kfkObj = [];
 
 //*****************************************************/
 //Kafka Consumer
@@ -14,13 +15,14 @@ kafka.consumer("my-consumer").join({
     "format": "binary",
     "auto.offset.reset": "smallest"
   }, function(err, consumer_instance) {
-    var stream = consumer_instance.subscribe('test'); //need to update to vid stream topic
+    var stream = consumer_instance.subscribe('drone1_successfullAIResults'); //need to update to vid stream
+
     stream.on('read', function(msgs) {
         for(var i = 0; i < msgs.length; i++)
-            console.log("Got a message: key=" + msgs[i].key + " value=" +
-                        msgs[i].value + " partition=" + msgs[i].partition);
+            console.log("Got a message: " + msgs[i]);
 
-            az_tag(msgs[i].value);
+            //Send to azure to describe img
+            // az_describe(msgs[i].value);
     });
 });
 
@@ -28,8 +30,8 @@ kafka.consumer("my-consumer").join({
 //Azure CV Analysis
 //*****************************************************/
 
-var az_tag = function (img){
-
+var az_describe = function (img){
+    
     //Set the headers
     var headers = {
         'Content-Type': 'application/octet-stream',
@@ -38,7 +40,7 @@ var az_tag = function (img){
 
     // Configure the request
     var options = {
-        url: "https://westus.api.cognitive.microsoft.com/vision/v1.0/tag",
+        url: "https://westus.api.cognitive.microsoft.com/vision/v1.0/describe",
         method: 'POST',
         headers: headers,
         body: img
@@ -51,7 +53,10 @@ var az_tag = function (img){
             console.log(body);
 
             //publish azure tags json to kafka
-            kfk_prod(body);
+            kfkObj.push({"az_desc": body});
+
+            //Send to OpenCV for bounding boxes
+            cvDetect(img);
 
         } else {
             console.log("error from service : " + response.body);
@@ -59,15 +64,79 @@ var az_tag = function (img){
     });
 };
 
+
+// var az_tag = function (img){
+
+//     //Set the headers
+//     var headers = {
+//         'Content-Type': 'application/octet-stream',
+//         'Ocp-Apim-Subscription-Key': '0116ca2ab45f4660b129abcd050534dd'
+//     };
+
+//     // Configure the request
+//     var options = {
+//         url: "https://westus.api.cognitive.microsoft.com/vision/v1.0/tag",
+//         method: 'POST',
+//         headers: headers,
+//         body: img
+//     };
+
+//     // Start the request
+//     request(options, function (error, response, body) {
+//         if (!error && response.statusCode == 200) {
+//             // Print out the response body
+//             console.log(body);
+
+//             //publish azure tags json to kafka
+//             kfkObj.push({"az_tags": body});
+//         } else {
+//             console.log("error from service : " + response.body);
+//         }
+//     });
+// };
+
+//*****************************************************/
+//OpenCV Bounding Boxes
+//*****************************************************/
+
+var cvDetect = function(img) {
+
+    cv.readImage(img, function(err, im){  
+    if (err) throw err;
+    if (im.width() < 1 || im.height() < 1) throw new Error('Image has no size');
+  
+        im.detectObject('./node_modules/opencv/data/haarcascade_fullbody.xml', {}, function(err, persons){
+        if (err) throw err;
+    
+        for (var i = 0; i < persons.length; i++){
+            var person = persons[i];
+            im.ellipse(person.x + person.width / 2, person.y + person.height / 2, person.width / 2, person.height / 2, [255, 255, 0], 3);
+        }
+
+        var buff = im.toBuffer();
+
+        //Add image binary to kfkObj
+        kfkObj.push({"personImg" : buff});
+
+        console.log(kfkObj.length);
+        
+        //publish kfkObj to kafka
+        kfkProd(kfkObj);
+
+        });
+    });
+};
+
+
 //*****************************************************/
 //Kafka Producer
 //*****************************************************/
 
-var kfk_prod = function(azure_tags_json){ 
+var kfkProd = function(kfkObj){ 
 
     //Push to 'test' topic
     kafka.topic('drone1_successfullAIResults')
-        .produce({"azure_tags_json": azure_tags_json},
+        .produce(kfkObj,
         function(err, response) {
             if(err){
                 console.log(err);
@@ -79,6 +148,7 @@ var kfk_prod = function(azure_tags_json){
 };
 
 //Test Image
-// var imgBinary = fs.readFileSync('test.jpeg');
+// var imgBinary = fs.readFileSync('30.jpg');
 
-// az_tag(imgBinary);
+// az_describe(imgBinary);
+// cvDetect(imgBinary);
